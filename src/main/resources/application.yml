@@ -8,11 +8,11 @@ logging:
     com.github.novicezk.midjourney: debug
 mj:
   discord:
-    guild-id: xxx
-    channel-id: xxx
-    user-token: xxx
-    bot-token: xxx
+    guild-id: 1109007247381635112
+    channel-id: 1109007247381635115
+    user-token: MTA4ODI5MjA0NDkxODc3MTc1Ng.Gwj7gd.Ci54hVRysB-WPO2t7WeORw2CliZPQ0zm-Lpa10
+    bot-token: MTEwOTAwNjc3MjA4NzI5MTkwNA.GUQkbF.JvQQfPIVOhIzU5u0Z1MdI1qtYXfEMYsx1gKg7s
   task-store:
-    type: in_memory
+    type: IN_MEMORY
     timeout: 30d
   translate-way: null
