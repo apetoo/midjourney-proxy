@@ -24,7 +24,7 @@
 
 1. 下载镜像
 ```shell
-docker pull novicezk/midjourney-proxy:1.5.1
+docker pull novicezk/midjourney-proxy
 ```
 2. 启动容器，并设置参数
 ```shell
@@ -34,7 +34,7 @@ docker run -d --name midjourney-proxy \
  -p 8080:8080 \
  -v /xxx/xxx/config:/home/spring/config \
  --restart=always \
- novicezk/midjourney-proxy:1.5.1
+ novicezk/midjourney-proxy
 
 # 或者直接在启动命令中设置参数
 docker run -d --name midjourney-proxy \
@@ -44,11 +44,11 @@ docker run -d --name midjourney-proxy \
  -e mj.discord.user-token=xxx \
  -e mj.discord.bot-token=xxx \
  --restart=always \
- novicezk/midjourney-proxy:1.5.1
+ novicezk/midjourney-proxy
 ```
 3. 访问 http://localhost:8080/mj 提示 "项目启动成功"
 4. 检查discord频道中新创建的机器人是否在线
-5. 调用api接口的根路径为 `http://ip:port/mj`，具体API接口见下文
+5. 调用api接口的根路径为 `http://ip:port/mj`，接口测试地址：`http://ip:port/mj/doc.html`，具体API接口见下文
 
 ## 注意事项
 1. 启动失败请检查全局代理或HTTP代理，排查 [JDA](https://github.com/DV8FromTheWorld/JDA) 连接问题
@@ -56,7 +56,7 @@ docker run -d --name midjourney-proxy \
 3. 在 [Issues](https://github.com/novicezk/midjourney-proxy/issues) 中提出其他问题或建议
 4. 感兴趣的朋友也欢迎加入交流群讨论一下
 
- <img src="https://raw.githubusercontent.com/novicezk/midjourney-proxy/main/docs/wechat-qrcode.png" width = "300" height = "300" alt="交流群二维码" align=center />
+ <img src="https://raw.githubusercontent.com/novicezk/midjourney-proxy/main/docs/wechat-qrcode.png" width = "330" height = "350" alt="交流群二维码" align=center />
 
 ## 配置项
 

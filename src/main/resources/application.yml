@@ -17,6 +17,9 @@ mj:
     timeout: 30d
   translate-way: null
 spring:
+  mvc:
+    pathmatch:
+      matching-strategy: ANT_PATH_MATCHER
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
