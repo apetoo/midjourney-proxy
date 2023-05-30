@@ -1,38 +1,16 @@
-server:
-  port: 8080
-  servlet:
-    context-path: /mj
-logging:
-  level:
-    ROOT: info
-    com.github.novicezk.midjourney: debug
 mj:
   discord:
-    guild-id: 1109007247381635112
-    channel-id: 1109007247381635115
-    user-token: MTA4ODI5MjA0NDkxODc3MTc1Ng.Gwj7gd.Ci54hVRysB-WPO2t7WeORw2CliZPQ0zm-Lpa10
-    bot-token: MTEwOTAwNjc3MjA4NzI5MTkwNA.GUQkbF.JvQQfPIVOhIzU5u0Z1MdI1qtYXfEMYsx1gKg7s
+    guild-id: xxx
+    channel-id: xxx
+    user-token: xxx
+    user-wss: false
+    user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36
+    bot-token: xxx
   task-store:
-    type: IN_MEMORY
+    type: in_memory
     timeout: 30d
   translate-way: null
-spring:
-  mvc:
-    pathmatch:
-      matching-strategy: ANT_PATH_MATCHER
-  jackson:
-    date-format: yyyy-MM-dd HH:mm:ss
-    time-zone: GMT+8
-  # redis配置 需修改
-#  redis:
-#    # Redis数据库索引（默认为0）
-#    database: 1
-#    # Redis服务器地址
-#    host: 127.0.0.1
-#    # Redis服务器连接端口
-#    port: 6379
-#    # Redis服务器连接密码（默认为空）
-##    password: fouPg3Xq
-#    # 连接超时时间
-#    timeout: 10s
-
+  queue:
+    timeout-minutes: 5
+    core-size: 3
+    queue-size: 10

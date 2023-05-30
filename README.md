@@ -2,41 +2,52 @@
 
 代理 MidJourney 的discord频道，实现api形式调用AI绘图
 
+[![GitHub release](https://img.shields.io/static/v1?label=release&message=v2.1&color=blue)](https://www.github.com/novicezk/midjourney-proxy)
+[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
+
 ## 现有功能
-- [x] 支持 Imagine、U、V 指令，绘图完成后回调
+- [x] 支持 Imagine 指令和相关U、V操作
+- [x] Imagine 时支持添加图片base64，作为垫图
 - [x] 支持 Describe 指令，根据图片生成 prompt
+- [x] 支持 Blend 指令，多个图片混合
+- [x] 支持 Imagine、V、Blend 图片生成进度
 - [x] 支持中文 prompt 翻译，需配置百度翻译或 gpt
 - [x] prompt 敏感词判断，支持覆盖调整
+- [x] 任务队列，默认队列10，并发3。可参考 [MidJourney订阅级别](https://docs.midjourney.com/docs/plans) 调整mj.queue
+- [x] 可选 user-token 连接 wss，以获取错误信息和完整功能
 
 ## 后续计划
-- [ ] 任务队列 [Issue](https://github.com/novicezk/midjourney-proxy/issues/45)
-- [ ] 支持mysql存储，优化任务的查询方式
+- [ ] 支持 Blend 指令后续的U、V操作
+- [ ] 支持 Reroll 操作
 - [ ] 支持配置账号池，分发绘图任务
-- [ ] Imagine 时支持上传图片，作为垫图
+- [ ] 支持mysql存储，优化任务的查询方式
+- [ ] 修复相关Bug，[Wiki / 已知问题](https://github.com/novicezk/midjourney-proxy/wiki/%E5%B7%B2%E7%9F%A5%E9%97%AE%E9%A2%98)
 
 ## 使用前提
 1. 科学上网
 2. docker环境
 3. 注册 MidJourney，创建自己的频道，参考 https://docs.midjourney.com/docs/quick-start
 4. 添加自己的机器人: [流程说明](./docs/discord-bot.md)
+5. user-wss方式，可不添加自己的机器人，但仍需参考流程的第4、5步，获取用户Token、服务器ID、频道ID
+
+## 风险须知
+1. 作图频繁等行为，触发midjourney验证码后，需尽快人工验证
+2. user-wss方式可以获取midjourney的错误信息、支持图片变换进度，但可能会增加账号风险
 
 ## 快速启动
-
-1. 下载镜像
+1. /xxx/xxx/config目录下创建 application.yml(mj配置项)、banned-words.txt(可选，覆盖默认的敏感词文件)；参考src/main/resources下的文件
+2. 启动容器，映射config目录
 ```shell
-docker pull novicezk/midjourney-proxy
-```
-2. 启动容器，并设置参数
-```shell
-# /xxx/xxx/config目录下创建 application.yml(配置项)、banned-words.txt(可选，覆盖默认的敏感词文件)
-# 参考src/main/resources下的文件
 docker run -d --name midjourney-proxy \
  -p 8080:8080 \
  -v /xxx/xxx/config:/home/spring/config \
  --restart=always \
- novicezk/midjourney-proxy
+ novicezk/midjourney-proxy:2.1
+```
+3. 访问 `http://ip:port/mj` 查看API文档
 
-# 或者直接在启动命令中设置参数
+附: 不映射config目录方式，直接在启动命令中设置参数
+```shell
 docker run -d --name midjourney-proxy \
  -p 8080:8080 \
  -e mj.discord.guild-id=xxx \
@@ -44,179 +55,42 @@ docker run -d --name midjourney-proxy \
  -e mj.discord.user-token=xxx \
  -e mj.discord.bot-token=xxx \
  --restart=always \
- novicezk/midjourney-proxy
+ novicezk/midjourney-proxy:2.1
 ```
-3. 访问 http://localhost:8080/mj 提示 "项目启动成功"
-4. 检查discord频道中新创建的机器人是否在线
-5. 调用api接口的根路径为 `http://ip:port/mj`，接口测试地址：`http://ip:port/mj/doc.html`，具体API接口见下文
 
 ## 注意事项
-1. 启动失败请检查全局代理或HTTP代理，排查 [JDA](https://github.com/DV8FromTheWorld/JDA) 连接问题
-2. 若回调通知接口失败，请检查网络设置，容器中的宿主机IP通常为172.17.0.1
-3. 在 [Issues](https://github.com/novicezk/midjourney-proxy/issues) 中提出其他问题或建议
-4. 感兴趣的朋友也欢迎加入交流群讨论一下
+1. 常见问题及解决办法见 [Wiki / FAQ](https://github.com/novicezk/midjourney-proxy/wiki/FAQ) 
+2. 在 [Issues](https://github.com/novicezk/midjourney-proxy/issues) 中提出其他问题或建议
+3. 感兴趣的朋友也欢迎加入交流群讨论一下，扫码进群名额已满，加管理员微信邀请进群
 
- <img src="https://raw.githubusercontent.com/novicezk/midjourney-proxy/main/docs/wechat-qrcode.png" width = "330" height = "350" alt="交流群二维码" align=center />
+ <img src="https://raw.githubusercontent.com/novicezk/midjourney-proxy/main/docs/manager-qrcode.png" width="320" alt="微信二维码"/>
 
 ## 配置项
+- mj.discord.guild-id：discord服务器ID
+- mj.discord.channel-id：discord频道ID
+- mj.discord.user-token：discord用户Token
+- mj.discord.user-wss：是否使用user-token连接wss，默认false(使用bot-token)
+- mj.discord.user-agent：调用discord接口、连接wss时的user-agent，默认使用作者的，建议从浏览器network复制替换掉
+- mj.discord.bot-token：自定义机器人Token，user-wss=false时必填
+- 更多配置查看 [Wiki / 配置项](https://github.com/novicezk/midjourney-proxy/wiki/%E9%85%8D%E7%BD%AE%E9%A1%B9)
 
-| 变量名 | 非空 | 描述 |
-| :-----| :----: | :---- |
-| mj.discord.guild-id | 是 | discord服务器ID |
-| mj.discord.channel-id | 是 | discord频道ID |
-| mj.discord.user-token | 是 | discord用户Token |
-| mj.discord.bot-token | 是 | 自定义机器人Token |
-| mj.discord.mj-bot-name | 否 | mj机器人名称，默认 "Midjourney Bot" |
-| mj.notify-hook | 否 | 任务状态变更回调地址 |
-| mj.task-store.type | 否 | 任务存储方式，默认in_memory(内存\重启后丢失)，可选redis |
-| mj.task-store.timeout | 否 | 任务过期时间，过期后删除，默认30天 |
-| mj.translate-way | 否 | 中文prompt翻译方式，可选null(默认)、baidu、gpt |
-| mj.baidu-translate.appid | 否 | 百度翻译的appid |
-| mj.baidu-translate.app-secret | 否 | 百度翻译的app-secret |
-| mj.openai.gpt-api-key | 否 | gpt的api-key |
-| mj.openai.timeout | 否 | openai调用的超时时间，默认30秒 |
-| mj.openai.model | 否 | openai的模型，默认gpt-3.5-turbo |
-| mj.openai.max-tokens | 否 | 返回结果的最大分词数，默认2048 |
-| mj.openai.temperature | 否 | 相似度(0-2.0)，默认0 |
-| spring.redis | 否 | 任务存储方式设置为redis，需配置redis相关属性 |
+## 本地开发
+- 依赖java17和maven
+- 更改配置项: 修改src/main/application.yml
+- 项目运行: 启动ProxyApplication的main函数
+- 更改代码后，构建镜像: `docker build . -t midjourney-proxy`
 
-## API接口说明
-
-### 1. `http://ip:port/mj/trigger/submit` 提交任务
-POST  application/json
-```json
-{
-    // 动作: 必传，IMAGINE（绘图）、UPSCALE（选中放大）、VARIATION（选中变换）
-    "action":"IMAGINE",
-    // 绘图参数: IMAGINE时必传
-    "prompt": "猫猫",
-    // 任务ID: UPSCALE、VARIATION时必传
-    "taskId": "1320098173412546",
-    // 图序号: 1～4，UPSCALE、VARIATION时必传，表示第几张图
-    "index": 3,
-    // 自定义字符串: 非必传，供回调到业务系统里使用
-    "state": "test:22",
-    // 支持每个任务配置不同回调地址，非必传
-    "notifyHook": "http://localhost:8113/notify"
-}
-```
-返回 `Message`，code=1表示提交成功，其他时description为错误描述
-```json
-{
-  "code": 1,
-  "description": "成功",
-  "result": "8498455807619990"
-}
-```
-result: 任务ID，用于后续查询任务或提交变换任务
-
-### 2. `http://ip:port/mj/trigger/submit-uv` 提交选中放大或变换任务
-POST  application/json
-```json
-{
-    // 自定义参数，非必传
-    "state": "test:22",
-    // 任务描述: 选中ID为1320098173412546的第2张图片放大
-    // 放大 U1～U4 ，变换 V1～V4
-    "content": "1320098173412546 U2",
-    // 支持每个任务配置不同回调地址，非必传
-    "notifyHook": "http://localhost:8113/notify"
-}
-```
-返回结果同 `/trigger/submit`
-
-### 3. `http://ip:port/mj/trigger/describe` 提交describe任务
-POST  application/json
-```json
-{
-    // 自定义参数，非必传
-    "state": "test:22",
-    // 图片的base64字符串
-    "base64": "data:image/png;base64,xxx",
-    // 支持每个任务配置不同回调地址，非必传
-    "notifyHook": "http://localhost:8113/notify"
-}
-```
-返回结果同 `/trigger/submit`
-
-后续任务完成后，task中prompt即为图片生成的prompt
-```json
-{
-  "action":"DESCRIBE",
-  "id":"3856553004865376",
-  "prompt":"1️⃣ xxx1 --ar 5:4\n\n2️⃣ xxx2 --ar 5:4\n\n3️⃣ xxx3 --ar 5:4\n\n4️⃣ xxx4 --ar 5:4",
-  "promptEn":"1️⃣ xxx1 --ar 5:4\n\n2️⃣ xxx2 --ar 5:4\n\n3️⃣ xxx3 --ar 5:4\n\n4️⃣ xxx4 --ar 5:4",
-  "description":"/describe 3856553004865376.png",
-  "state":"test:22",
-  "submitTime":1683779732983,
-  "finishTime":1683779741711,
-  "imageUrl":"https://cdn.discordapp.com/ephemeral-attachments/xxxx/xxxx/3856553004865376.png",
-  "status":"SUCCESS"
-}
-```
-
-### 4. `http://ip:port/mj/task/{id}/fetch` GET 查询单个任务
-```json
-{
-    // 动作: IMAGINE（绘图）、UPSCALE（选中放大）、VARIATION（选中变换）
-    "action":"IMAGINE",
-    // 任务ID
-    "id":"8498455807628990",
-    // 绘图参数
-    "prompt":"猫猫",
-    // 翻译后的绘图参数
-    "promptEn": "Cat",
-    // 执行的命令
-    "description":"/imagine 猫猫",
-    // 自定义参数
-    "state":"test:22",
-    // 提交时间
-    "submitTime":1682473784826,
-    // 结束时间
-    "finishTime":null,
-    // 生成图片的url, 成功时有值
-    "imageUrl":"https://cdn.discordapp.com/attachments/xxx/xxx/xxxx_xxxx.png",
-    // 任务状态: NOT_START（未启动）、IN_PROGRESS（执行中）、FAILURE（失败）、SUCCESS（成功）
-    "status":"IN_PROGRESS"
-}
-```
-
-### 5. `http://ip:port/mj/task/list` GET 查询所有任务
-
-```json
-[
-  {
-    "action":"IMAGINE",
-    "id":"8498455807628990",
-    "prompt":"猫猫",
-    "promptEn": "Cat",
-    "description":"/imagine 猫猫",
-    "state":"test:22",
-    "submitTime":1682473784826,
-    "finishTime":null,
-    "imageUrl":null,
-    "status":"IN_PROGRESS"
-  }
-]
-```
-
-## `mj.notify-hook` 任务变更回调
-POST  application/json
-```json
-{
-    "action":"IMAGINE",
-    "id":"8498455807628990",
-    "prompt":"猫猫",
-    "promptEn": "Cat",
-    "description":"/imagine 猫猫",
-    "state":"test:22",
-    "submitTime":1682473784826,
-    "finishTime":null,
-    "imageUrl":null,
-    "status":"IN_PROGRESS"
-}
-```
+## Wiki链接
+1. [Wiki / API接口说明](https://github.com/novicezk/midjourney-proxy/wiki/API%E6%8E%A5%E5%8F%A3%E8%AF%B4%E6%98%8E)
+2. [Wiki / 任务变更回调](https://github.com/novicezk/midjourney-proxy/wiki/%E4%BB%BB%E5%8A%A1%E5%8F%98%E6%9B%B4%E5%9B%9E%E8%B0%83)
+2. [Wiki / 更新记录](https://github.com/novicezk/midjourney-proxy/wiki/%E6%9B%B4%E6%96%B0%E8%AE%B0%E5%BD%95)
 
 ## 应用项目
+- [wechat-midjourney](https://github.com/novicezk/wechat-midjourney) : 代理微信客户端，接入MidJourney，仅示例应用场景，不再更新
+- [stable-diffusion-mobileui](https://github.com/yuanyuekeji/stable-diffusion-mobileui) : SDUI，基于本接口和SD，可一键打包生成H5和小程序
+- 依赖此项目且开源的，欢迎联系作者，加到此处展示
 
-- [wechat-midjourney](https://github.com/novicezk/wechat-midjourney) : 代理微信客户端，接入MidJourney
+## 其它
+如果觉得这个项目对你有所帮助，请帮忙点个star；也可以请作者喝杯茶～
+
+ <img src="https://raw.githubusercontent.com/novicezk/midjourney-proxy/main/docs/receipt-code.png" width="220" alt="二维码"/>

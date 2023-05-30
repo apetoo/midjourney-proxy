@@ -4,6 +4,8 @@ package com.github.novicezk.midjourney.service;
 import com.github.novicezk.midjourney.result.Message;
 import eu.maxschuster.dataurl.DataUrl;
 
+import java.util.List;
+
 public interface DiscordService {
 
 	Message<Void> imagine(String prompt);
@@ -12,10 +14,14 @@ public interface DiscordService {
 
 	Message<Void> variation(String messageId, int index, String messageHash);
 
-	Message<Void> reset(String messageId, String messageHash);
+	Message<Void> reroll(String messageId, String messageHash);
+
+	Message<Void> describe(String finalFileName);
+
+	Message<Void> blend(List<String> finalFileNames);
 
 	Message<String> upload(String fileName, DataUrl dataUrl);
 
-	Message<Void> describe(String finalFileName);
+	Message<String> sendImageMessage(String content, String finalFileName);
 
 }
