@@ -65,6 +65,9 @@ public class SubmitController {
 		} else {
 			promptEn = this.translateService.translateToEnglish(prompt).trim();
 		}
+		if (CharSequenceUtil.isBlank(promptEn)) {
+			promptEn = prompt;
+		}
 		if (BannedPromptUtils.isBanned(promptEn)) {
 			return SubmitResultVO.fail(ReturnCode.BANNED_PROMPT, "可能包含敏感词");
 		}
@@ -128,7 +131,7 @@ public class SubmitController {
 		if (!TaskStatus.SUCCESS.equals(targetTask.getStatus())) {
 			return SubmitResultVO.fail(ReturnCode.VALIDATION_ERROR, "关联任务状态错误");
 		}
-		if (Set.of(TaskAction.IMAGINE, TaskAction.VARIATION).contains(targetTask.getAction())) {
+		if (!Set.of(TaskAction.IMAGINE, TaskAction.VARIATION).contains(targetTask.getAction())) {
 			return SubmitResultVO.fail(ReturnCode.VALIDATION_ERROR, "关联任务不允许执行变化");
 		}
 		Task task = newTask(changeDTO);

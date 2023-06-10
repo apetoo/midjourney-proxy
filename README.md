@@ -2,7 +2,7 @@
 
 代理 MidJourney 的discord频道，实现api形式调用AI绘图
 
-[![GitHub release](https://img.shields.io/static/v1?label=release&message=v2.1&color=blue)](https://www.github.com/novicezk/midjourney-proxy)
+[![GitHub release](https://img.shields.io/static/v1?label=release&message=v2.1.6&color=blue)](https://www.github.com/novicezk/midjourney-proxy)
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
 ## 现有功能
@@ -15,12 +15,13 @@
 - [x] prompt 敏感词判断，支持覆盖调整
 - [x] 任务队列，默认队列10，并发3。可参考 [MidJourney订阅级别](https://docs.midjourney.com/docs/plans) 调整mj.queue
 - [x] 可选 user-token 连接 wss，以获取错误信息和完整功能
+- [x] 支持 discord域名(server、cdn、wss)反代，配置 mj.ng-discord
 
 ## 后续计划
 - [ ] 支持 Blend 指令后续的U、V操作
 - [ ] 支持 Reroll 操作
+- [ ] 支持接口和页面启用鉴权
 - [ ] 支持配置账号池，分发绘图任务
-- [ ] 支持mysql存储，优化任务的查询方式
 - [ ] 修复相关Bug，[Wiki / 已知问题](https://github.com/novicezk/midjourney-proxy/wiki/%E5%B7%B2%E7%9F%A5%E9%97%AE%E9%A2%98)
 
 ## 使用前提
@@ -42,7 +43,7 @@ docker run -d --name midjourney-proxy \
  -p 8080:8080 \
  -v /xxx/xxx/config:/home/spring/config \
  --restart=always \
- novicezk/midjourney-proxy:2.1
+ novicezk/midjourney-proxy:2.1.6
 ```
 3. 访问 `http://ip:port/mj` 查看API文档
 
@@ -55,7 +56,7 @@ docker run -d --name midjourney-proxy \
  -e mj.discord.user-token=xxx \
  -e mj.discord.bot-token=xxx \
  --restart=always \
- novicezk/midjourney-proxy:2.1
+ novicezk/midjourney-proxy:2.1.6
 ```
 
 ## 注意事项
@@ -94,3 +95,5 @@ docker run -d --name midjourney-proxy \
 如果觉得这个项目对你有所帮助，请帮忙点个star；也可以请作者喝杯茶～
 
  <img src="https://raw.githubusercontent.com/novicezk/midjourney-proxy/main/docs/receipt-code.png" width="220" alt="二维码"/>
+
+![Star History Chart](https://api.star-history.com/svg?repos=novicezk/midjourney-proxy&type=Date)
