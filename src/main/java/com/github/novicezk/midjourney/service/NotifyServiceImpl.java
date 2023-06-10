@@ -42,7 +42,7 @@ public class NotifyServiceImpl implements NotifyService {
             return;
         }
         String taskId = task.getId();
-        log.debug("task 信息为:{}", JSONUtil.toJsonStr(task));
+        log.info("task 信息为:{}", JSONUtil.toJsonStr(task));
         updateCosTask(task);
         try {
             String paramsStr = OBJECT_MAPPER.writeValueAsString(task);
@@ -81,20 +81,21 @@ public class NotifyServiceImpl implements NotifyService {
             ObjectMetadata objectMetadata = new ObjectMetadata();
             objectMetadata.setContentDisposition("inline");
             objectMetadata.setContentType("image/" + extension);
-            objectMetadata.setContentLength(objectMetadata.getContentLength());
+//            objectMetadata.setContentLength();
             Map<String, String> userMetadata = new HashMap<>();
-            userMetadata.put("id", taskId);
-            userMetadata.put("name", key);
+//            userMetadata.put("id", taskId);
+//            userMetadata.put("name", key);
             userMetadata.put("taskStatus", task.getStatus().name());
             userMetadata.put("failReason", task.getFailReason());
             userMetadata.put("notifyHook", task.getNotifyHook());
             userMetadata.put("relatedTaskId", task.getRelatedTaskId());
+            userMetadata.put("state",task.getState());
             objectMetadata.setUserMetadata(userMetadata);
 
             PutObjectRequest putObjectRequest = new PutObjectRequest(cosConfig.getBucketName(), key, inputStream, objectMetadata);
             Upload upload = transferManager.upload(putObjectRequest);
             UploadResult uploadResult = upload.waitForUploadResult();
-            log.debug("uploadResult:{}", uploadResult);
+            log.info("uploadResult:{}", JSONUtil.toJsonStr(uploadResult));
         } catch (Exception e) {
             log.error("cos上传异常", e);
         }

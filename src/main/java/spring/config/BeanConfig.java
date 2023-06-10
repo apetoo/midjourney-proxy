@@ -105,8 +105,9 @@ public class BeanConfig {
         // 设置高级接口的配置项
         // 分块上传阈值和分块大小分别为 5MB 和 1MB
         TransferManagerConfiguration transferManagerConfiguration = new TransferManagerConfiguration();
-        transferManagerConfiguration.setMultipartUploadThreshold(5 * 1024 * 1024);
+        transferManagerConfiguration.setMultipartUploadThreshold(3 * 1024 * 1024);
         transferManagerConfiguration.setMinimumUploadPartSize(1 * 1024 * 1024);
+        transferManagerConfiguration.setMultipartCopyThreshold(3 * 1024 * 1024);
         transferManager.setConfiguration(transferManagerConfiguration);
 
         return transferManager;
