@@ -62,6 +62,7 @@ public class NotifyServiceImpl implements NotifyService {
         URL url;
         URLConnection connection;
         String imageUrl = task.getImageUrl();
+        log.info(imageUrl);
         if (StrUtil.isBlank(imageUrl)) {
             return;
         }
@@ -94,6 +95,7 @@ public class NotifyServiceImpl implements NotifyService {
 
             PutObjectRequest putObjectRequest = new PutObjectRequest(cosConfig.getBucketName(), key, inputStream, objectMetadata);
             Upload upload = transferManager.upload(putObjectRequest);
+            log.info("upload:{}",JSONUtil.toJsonStr(upload));
             UploadResult uploadResult = upload.waitForUploadResult();
             log.info("uploadResult:{}", JSONUtil.toJsonStr(uploadResult));
         } catch (Exception e) {

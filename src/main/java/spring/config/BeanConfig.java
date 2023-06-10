@@ -136,7 +136,8 @@ public class BeanConfig {
         // 5.6.53 及更低的版本，建议设置使用 https 协议
         // 5.6.54 及更高版本，默认使用了 https
         clientConfig.setHttpProtocol(HttpProtocol.https);
-
+        String cosSuffix = "cos.accelerate.myqcloud.com";
+        clientConfig.setEndPointSuffix(cosSuffix);
         // 以下的设置，是可选的：
 
         // 设置 socket 读取超时，默认 30s
