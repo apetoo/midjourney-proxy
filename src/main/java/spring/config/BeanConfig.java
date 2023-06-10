@@ -1,5 +1,6 @@
 package spring.config;
 
+import cn.hutool.extra.spring.SpringUtil;
 import com.github.novicezk.midjourney.ProxyProperties;
 import com.github.novicezk.midjourney.service.TaskStoreService;
 import com.github.novicezk.midjourney.service.TranslateService;
@@ -26,54 +27,60 @@ import java.time.Duration;
 @Configuration
 public class BeanConfig {
 
-	@Bean
-	TranslateService translateService(ProxyProperties properties) {
-		return switch (properties.getTranslateWay()) {
-			case BAIDU -> new BaiduTranslateServiceImpl(properties.getBaiduTranslate());
-			case GPT -> new GPTTranslateServiceImpl(properties.getOpenai());
-			default -> prompt -> prompt;
-		};
-	}
+    @Bean
+    TranslateService translateService(ProxyProperties properties) {
+        return switch (properties.getTranslateWay()) {
+            case BAIDU -> new BaiduTranslateServiceImpl(properties.getBaiduTranslate());
+            case GPT -> new GPTTranslateServiceImpl(properties.getOpenai());
+            default -> prompt -> prompt;
+        };
+    }
 
-	@Bean
-	TaskStoreService taskStoreService(ProxyProperties proxyProperties, RedisConnectionFactory redisConnectionFactory) {
-		ProxyProperties.TaskStore.Type type = proxyProperties.getTaskStore().getType();
-		Duration timeout = proxyProperties.getTaskStore().getTimeout();
-		return switch (type) {
-			case IN_MEMORY -> new InMemoryTaskStoreServiceImpl(timeout);
-			case REDIS -> new RedisTaskStoreServiceImpl(timeout, taskRedisTemplate(redisConnectionFactory));
-		};
-	}
+    @Bean
+    TaskStoreService taskStoreService(ProxyProperties proxyProperties, RedisConnectionFactory redisConnectionFactory) {
+        ProxyProperties.TaskStore.Type type = proxyProperties.getTaskStore().getType();
+        Duration timeout = proxyProperties.getTaskStore().getTimeout();
+        return switch (type) {
+            case IN_MEMORY -> new InMemoryTaskStoreServiceImpl(timeout);
+            case REDIS -> new RedisTaskStoreServiceImpl(timeout, taskRedisTemplate(redisConnectionFactory));
+        };
+    }
 
-	@Bean
-	RedisTemplate<String, Task> taskRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
-		RedisTemplate<String, Task> redisTemplate = new RedisTemplate<>();
-		redisTemplate.setConnectionFactory(redisConnectionFactory);
-		redisTemplate.setKeySerializer(new StringRedisSerializer());
-		redisTemplate.setHashKeySerializer(new StringRedisSerializer());
-		return redisTemplate;
-	}
+    @Bean
+    RedisTemplate<String, Task> taskRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
+        RedisTemplate<String, Task> redisTemplate = new RedisTemplate<>();
+        redisTemplate.setConnectionFactory(redisConnectionFactory);
+        redisTemplate.setKeySerializer(new StringRedisSerializer());
+        redisTemplate.setHashKeySerializer(new StringRedisSerializer());
+        return redisTemplate;
+    }
 
-	@Bean
-	WebSocketStarter webSocketStarter(ProxyProperties properties) {
-		return properties.getDiscord().isUserWss() ? new UserWebSocketStarter(properties) : new BotWebSocketStarter(properties);
-	}
+    @Bean
+    WebSocketStarter webSocketStarter(ProxyProperties properties) {
+        return properties.getDiscord().isUserWss() ? new UserWebSocketStarter(properties) : new BotWebSocketStarter(properties);
+    }
 
-	@Bean
-	@ConditionalOnProperty(prefix = "mj.discord", name = "user-wss", havingValue = "true")
-	UserMessageListener userMessageListener() {
-		return new UserMessageListener();
-	}
+    @Bean
+    @ConditionalOnProperty(prefix = "mj.discord", name = "user-wss", havingValue = "true")
+    UserMessageListener userMessageListener() {
+        return new UserMessageListener();
+    }
 
-	@Bean
-	@ConditionalOnProperty(prefix = "mj.discord", name = "user-wss", havingValue = "false")
-	BotMessageListener botMessageListener() {
-		return new BotMessageListener();
-	}
+    @Bean
+    @ConditionalOnProperty(prefix = "mj.discord", name = "user-wss", havingValue = "false")
+    BotMessageListener botMessageListener() {
+        return new BotMessageListener();
+    }
 
-	@Bean
-	ApplicationRunner enableMetaChangeReceiverInitializer(WebSocketStarter webSocketStarter) {
-		return args -> webSocketStarter.start();
-	}
+    @Bean
+    ApplicationRunner enableMetaChangeReceiverInitializer(WebSocketStarter webSocketStarter) {
+        return args -> webSocketStarter.start();
+    }
+
+    @Bean
+    public SpringUtil springUtil() {
+        return new SpringUtil();
+    }
+
 
 }

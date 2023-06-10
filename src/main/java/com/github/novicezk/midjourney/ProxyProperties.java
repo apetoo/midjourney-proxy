@@ -39,6 +39,10 @@ public class ProxyProperties {
 	 * 中文prompt翻译方式.
 	 */
 	private TranslateWay translateWay = TranslateWay.NULL;
+    /**
+     * cos
+     */
+	private CosConfig cosConfig = new CosConfig();
 	/**
 	 * 任务状态变更回调地址.
 	 */
@@ -161,5 +165,13 @@ public class ProxyProperties {
 		 * 任务超时时间(分钟).
 		 */
 		private int timeoutMinutes = 5;
+	}
+
+	@Data
+	public static class CosConfig{
+		private String secretId;
+		private String secretKey;
+		private String domain;
+		private String bucketName;
 	}
 }

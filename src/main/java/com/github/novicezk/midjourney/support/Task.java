@@ -36,6 +36,8 @@ public class Task implements Serializable {
 	private Long finishTime;
 	@ApiModelProperty("图片url")
 	private String imageUrl;
+	@ApiModelProperty("cos图片url")
+	private String cosImageUrl;
 	@ApiModelProperty("任务状态")
 	private TaskStatus status = TaskStatus.NOT_START;
 	@ApiModelProperty("任务进度")
