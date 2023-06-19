@@ -1,21 +1,25 @@
 package com.github.novicezk.midjourney.service;
 
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Map;
+
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.novicezk.midjourney.ProxyProperties;
 import com.github.novicezk.midjourney.Constants;
+import com.github.novicezk.midjourney.ProxyProperties;
 import com.github.novicezk.midjourney.support.Task;
 import com.qcloud.cos.model.ObjectMetadata;
 import com.qcloud.cos.model.PutObjectRequest;
 import com.qcloud.cos.model.UploadResult;
 import com.qcloud.cos.transfer.TransferManager;
 import com.qcloud.cos.transfer.Upload;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,54 +29,50 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.HashMap;
-import java.util.Map;
-
 @Slf4j
 @Service
 public class NotifyServiceImpl implements NotifyService {
-	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-	private final ThreadPoolTaskExecutor executor;
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private final ThreadPoolTaskExecutor executor;
   @Autowired
   private ProxyProperties properties;
   @Autowired
   private TransferManager transferManager;
-	public NotifyServiceImpl() {
-		this.executor = new ThreadPoolTaskExecutor();
-		this.executor.setCorePoolSize(10);
-		this.executor.setThreadNamePrefix("TaskNotify-");
-		this.executor.initialize();
-	}
 
-	@Override
-	public void notifyTaskChange(Task task) {
-		String notifyHook = task.getPropertyGeneric(Constants.TASK_PROPERTY_NOTIFY_HOOK);
-		if (CharSequenceUtil.isBlank(notifyHook)) {
-			return;
-		}
-		this.executor.execute(() -> {
-			try {
-        String taskId = task.getId();
-        log.info("task 信息为:{}", JSONUtil.toJsonStr(task));
+  public NotifyServiceImpl () {
+    this.executor = new ThreadPoolTaskExecutor();
+    this.executor.setCorePoolSize(10);
+    this.executor.setThreadNamePrefix("TaskNotify-");
+    this.executor.initialize();
+  }
+
+  @Override
+  public void notifyTaskChange (Task task) {
+    String notifyHook = task.getPropertyGeneric(Constants.TASK_PROPERTY_NOTIFY_HOOK);
+    if (CharSequenceUtil.isBlank(notifyHook)) {
+      return;
+    }
+    String taskId = task.getId();
+    this.executor.execute(() -> {
+      try {
+//        log.info("task 信息为:{}", JSONUtil.toJsonStr(task));
         updateCosTask(task);
-				String paramsStr = OBJECT_MAPPER.writeValueAsString(task);
-				ResponseEntity<String> responseEntity = postJson(notifyHook, paramsStr);
-				if (responseEntity.getStatusCode() == HttpStatus.OK) {
+        String paramsStr = OBJECT_MAPPER.writeValueAsString(task);
+        ResponseEntity<String> responseEntity = postJson(notifyHook, paramsStr);
+        if (responseEntity.getStatusCode() == HttpStatus.OK) {
           log.debug("推送任务变更成功, 任务ID: {}, status: {}", taskId, task.getStatus());
-				} else {
-          log.error("推送任务变更失败, 任务ID: {}, 描述: {}", taskId, e.getMessage(), e);
-				}
-			} catch (Exception e) {
+        } else {
+          log.error("推送任务变更失败, 任务ID: {}, code: {}  body: {}", taskId, responseEntity.getStatusCodeValue(), responseEntity.getBody());
+        }
+      } catch (Exception e) {
         log.error("推送任务变更失败, 任务ID: {}, 描述: {}", taskId, e.getMessage(), e);
-			}
-		});
-	}
+      }
+    });
+  }
 
 
-  private void updateCosTask(Task task) {
+  private void updateCosTask (Task task) {
     String taskId = task.getId();
     URL url;
     URLConnection connection;
@@ -103,14 +103,14 @@ public class NotifyServiceImpl implements NotifyService {
 //            userMetadata.put("name", key);
       userMetadata.put("taskStatus", task.getStatus().name());
       userMetadata.put("failReason", task.getFailReason());
-      userMetadata.put("notifyHook", task.getNotifyHook());
-      userMetadata.put("relatedTaskId", task.getRelatedTaskId());
-      userMetadata.put("state",task.getState());
+      userMetadata.put("notifyHook", task.getPropertyGeneric(Constants.TASK_PROPERTY_NOTIFY_HOOK));
+      userMetadata.put("relatedTaskId", task.getPropertyGeneric(Constants.TASK_PROPERTY_RELATED_TASK_ID));
+      userMetadata.put("state", task.getState());
       objectMetadata.setUserMetadata(userMetadata);
 
       PutObjectRequest putObjectRequest = new PutObjectRequest(cosConfig.getBucketName(), key, inputStream, objectMetadata);
       Upload upload = transferManager.upload(putObjectRequest);
-      log.info("upload:{}",JSONUtil.toJsonStr(upload));
+      log.info("upload:{}", JSONUtil.toJsonStr(upload));
       UploadResult uploadResult = upload.waitForUploadResult();
       log.info("uploadResult:{}", JSONUtil.toJsonStr(uploadResult));
     } catch (Exception e) {
@@ -118,20 +118,20 @@ public class NotifyServiceImpl implements NotifyService {
     }
   }
 
-    private ResponseEntity<String> postJson(String notifyHook, String paramsJson) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> httpEntity = new HttpEntity<>(paramsJson, headers);
-        return new RestTemplate().postForEntity(notifyHook, httpEntity, String.class);
-    }
+  private ResponseEntity<String> postJson (String notifyHook, String paramsJson) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    HttpEntity<String> httpEntity = new HttpEntity<>(paramsJson, headers);
+    return new RestTemplate().postForEntity(notifyHook, httpEntity, String.class);
+  }
 
-    public static String getExtension(URL url) {
-        String path = url.getPath();
-        int lastDotPos = path.lastIndexOf('.');
+  public static String getExtension (URL url) {
+    String path = url.getPath();
+    int lastDotPos = path.lastIndexOf('.');
 
-        // 如果找到了'.'，则截取其后的部分作为文件扩展名；否则，文件扩展名为空
-        return lastDotPos != -1 ? path.substring(lastDotPos + 1) : "";
-    }
+    // 如果找到了'.'，则截取其后的部分作为文件扩展名；否则，文件扩展名为空
+    return lastDotPos != -1 ? path.substring(lastDotPos + 1) : "";
+  }
 
 //    public static void main(String[] args) throws Exception {
 //        URL url = new URL("https://cdn.discordapp.com/attachments/1114559240116371456/1114840474742685696/1114840427066052660.png");
