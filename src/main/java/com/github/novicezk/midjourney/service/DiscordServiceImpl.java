@@ -1,6 +1,10 @@
 package com.github.novicezk.midjourney.service;
 
 
+import java.util.List;
+
+import javax.annotation.PostConstruct;
+
 import cn.hutool.core.io.resource.ResourceUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.github.novicezk.midjourney.ProxyProperties;
@@ -20,9 +24,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-
-import javax.annotation.PostConstruct;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -217,6 +218,7 @@ public class DiscordServiceImpl implements DiscordService {
 
 	private Message<Void> postJsonAndCheckStatus(String paramsStr) {
 		try {
+      log.info("discord 请求信息为:{}",paramsStr);
 			ResponseEntity<String> responseEntity = postJson(paramsStr);
 			if (responseEntity.getStatusCode() == HttpStatus.NO_CONTENT) {
 				return Message.success();

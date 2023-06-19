@@ -1,4 +1,4 @@
-FROM maven:3.8.5-openjdk-17
+FROM eclipse-temurin:17-jre
 
 ARG user=spring
 ARG group=spring
@@ -17,18 +17,14 @@ RUN groupadd -g 1000 ${group} \
 USER ${user}
 WORKDIR $SPRING_HOME
 
-COPY . .
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
 
-RUN mvn clean package \
-    && mv target/midjourney-proxy-*.jar ./app.jar \
-    && rm -rf target
-
-EXPOSE 8080 9876
+EXPOSE 8080
 
 ENV JAVA_OPTS -XX:MaxRAMPercentage=85 -Djava.awt.headless=true -XX:+HeapDumpOnOutOfMemoryError \
  -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -Xlog:gc:file=/home/spring/logs/gc.log \
- -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9876 -Dcom.sun.management.jmxremote.ssl=false \
- -Dcom.sun.management.jmxremote.authenticate=false -Dlogging.file.path=/home/spring/logs \
+ -Dlogging.file.path=/home/spring/logs \
  -Dserver.port=8080 -Duser.timezone=Asia/Shanghai
 
-ENTRYPOINT ["bash","-c","java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar $SPRING_HOME/app.jar"]

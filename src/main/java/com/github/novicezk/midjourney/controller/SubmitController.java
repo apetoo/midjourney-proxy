@@ -1,7 +1,12 @@
 package com.github.novicezk.midjourney.controller;
 
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.IdUtil;
 import com.github.novicezk.midjourney.Constants;
 import com.github.novicezk.midjourney.ProxyProperties;
 import com.github.novicezk.midjourney.ReturnCode;
@@ -34,11 +39,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 @Api(tags = "任务提交")
 @RestController
@@ -203,7 +203,7 @@ public class SubmitController {
 
 	private Task newTask(BaseSubmitDTO base) {
 		Task task = new Task();
-		task.setId(RandomUtil.randomNumbers(16));
+		task.setId(IdUtil.getSnowflakeNextIdStr());
 		task.setSubmitTime(System.currentTimeMillis());
 		task.setState(base.getState());
 		String notifyHook = CharSequenceUtil.isBlank(base.getNotifyHook()) ? this.properties.getNotifyHook() : base.getNotifyHook();
