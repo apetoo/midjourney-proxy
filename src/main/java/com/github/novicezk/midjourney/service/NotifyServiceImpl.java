@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.novicezk.midjourney.ProxyProperties;
+import com.github.novicezk.midjourney.Constants;
 import com.github.novicezk.midjourney.support.Task;
 import com.qcloud.cos.model.ObjectMetadata;
 import com.qcloud.cos.model.PutObjectRequest;
@@ -15,6 +16,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -26,82 +33,90 @@ import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class NotifyServiceImpl implements NotifyService {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    @Autowired
-    private ProxyProperties properties;
-    @Autowired
-    private TransferManager transferManager;
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+	private final ThreadPoolTaskExecutor executor;
+  @Autowired
+  private ProxyProperties properties;
+  @Autowired
+  private TransferManager transferManager;
+	public NotifyServiceImpl() {
+		this.executor = new ThreadPoolTaskExecutor();
+		this.executor.setCorePoolSize(10);
+		this.executor.setThreadNamePrefix("TaskNotify-");
+		this.executor.initialize();
+	}
 
-
-    @Override
-    public void notifyTaskChange(Task task) {
-        String notifyHook = task.getNotifyHook();
-        if (CharSequenceUtil.isBlank(notifyHook)) {
-            return;
-        }
+	@Override
+	public void notifyTaskChange(Task task) {
+		String notifyHook = task.getPropertyGeneric(Constants.TASK_PROPERTY_NOTIFY_HOOK);
+		if (CharSequenceUtil.isBlank(notifyHook)) {
+			return;
+		}
+		this.executor.execute(() -> {
+			try {
         String taskId = task.getId();
         log.info("task 信息为:{}", JSONUtil.toJsonStr(task));
         updateCosTask(task);
-        try {
-            String paramsStr = OBJECT_MAPPER.writeValueAsString(task);
-            ResponseEntity<String> responseEntity = postJson(notifyHook, paramsStr);
-            if (responseEntity.getStatusCode() == HttpStatus.OK) {
-                log.debug("推送任务变更成功, 任务ID: {}, status: {}", taskId, task.getStatus());
-            } else {
-                log.warn("推送任务变更失败, 任务ID: {}, code: {}, msg: {}", taskId, responseEntity.getStatusCodeValue(), responseEntity.getBody());
-            }
-        } catch (Exception e) {
-            log.error("推送任务变更失败, 任务ID: {}, 描述: {}", taskId, e.getMessage(), e);
-        }
+				String paramsStr = OBJECT_MAPPER.writeValueAsString(task);
+				ResponseEntity<String> responseEntity = postJson(notifyHook, paramsStr);
+				if (responseEntity.getStatusCode() == HttpStatus.OK) {
+          log.debug("推送任务变更成功, 任务ID: {}, status: {}", taskId, task.getStatus());
+				} else {
+          log.error("推送任务变更失败, 任务ID: {}, 描述: {}", taskId, e.getMessage(), e);
+				}
+			} catch (Exception e) {
+        log.error("推送任务变更失败, 任务ID: {}, 描述: {}", taskId, e.getMessage(), e);
+			}
+		});
+	}
+
+
+  private void updateCosTask(Task task) {
+    String taskId = task.getId();
+    URL url;
+    URLConnection connection;
+    String imageUrl = task.getImageUrl();
+    log.info(imageUrl);
+    if (StrUtil.isBlank(imageUrl)) {
+      return;
     }
+    try {
+      url = new URL(imageUrl);
+      connection = url.openConnection();
+    } catch (Exception e) {
+      log.error("根据URL地址获取图片异常 地址:{}", imageUrl, e);
+      return;
+    }
+    try (InputStream inputStream = connection.getInputStream()) {
+      ProxyProperties.CosConfig cosConfig = properties.getCosConfig();
+      String extension = getExtension(url);
+      String key = taskId + "." + extension;
+      task.setCosImageUrl(cosConfig.getDomain() + "/" + key);
 
-    private void updateCosTask(Task task) {
-        String taskId = task.getId();
-        URL url;
-        URLConnection connection;
-        String imageUrl = task.getImageUrl();
-        log.info(imageUrl);
-        if (StrUtil.isBlank(imageUrl)) {
-            return;
-        }
-        try {
-            url = new URL(imageUrl);
-            connection = url.openConnection();
-        } catch (Exception e) {
-            log.error("根据URL地址获取图片异常 地址:{}", imageUrl, e);
-            return;
-        }
-        try (InputStream inputStream = connection.getInputStream()) {
-            ProxyProperties.CosConfig cosConfig = properties.getCosConfig();
-            String extension = getExtension(url);
-            String key = taskId + "." + extension;
-            task.setCosImageUrl(cosConfig.getDomain() + "/" + key);
-
-            ObjectMetadata objectMetadata = new ObjectMetadata();
-            objectMetadata.setContentDisposition("inline");
-            objectMetadata.setContentType("image/" + extension);
+      ObjectMetadata objectMetadata = new ObjectMetadata();
+      objectMetadata.setContentDisposition("inline");
+      objectMetadata.setContentType("image/" + extension);
 //            objectMetadata.setContentLength();
-            Map<String, String> userMetadata = new HashMap<>();
+      Map<String, String> userMetadata = new HashMap<>();
 //            userMetadata.put("id", taskId);
 //            userMetadata.put("name", key);
-            userMetadata.put("taskStatus", task.getStatus().name());
-            userMetadata.put("failReason", task.getFailReason());
-            userMetadata.put("notifyHook", task.getNotifyHook());
-            userMetadata.put("relatedTaskId", task.getRelatedTaskId());
-            userMetadata.put("state",task.getState());
-            objectMetadata.setUserMetadata(userMetadata);
+      userMetadata.put("taskStatus", task.getStatus().name());
+      userMetadata.put("failReason", task.getFailReason());
+      userMetadata.put("notifyHook", task.getNotifyHook());
+      userMetadata.put("relatedTaskId", task.getRelatedTaskId());
+      userMetadata.put("state",task.getState());
+      objectMetadata.setUserMetadata(userMetadata);
 
-            PutObjectRequest putObjectRequest = new PutObjectRequest(cosConfig.getBucketName(), key, inputStream, objectMetadata);
-            Upload upload = transferManager.upload(putObjectRequest);
-            log.info("upload:{}",JSONUtil.toJsonStr(upload));
-            UploadResult uploadResult = upload.waitForUploadResult();
-            log.info("uploadResult:{}", JSONUtil.toJsonStr(uploadResult));
-        } catch (Exception e) {
-            log.error("cos上传异常", e);
-        }
+      PutObjectRequest putObjectRequest = new PutObjectRequest(cosConfig.getBucketName(), key, inputStream, objectMetadata);
+      Upload upload = transferManager.upload(putObjectRequest);
+      log.info("upload:{}",JSONUtil.toJsonStr(upload));
+      UploadResult uploadResult = upload.waitForUploadResult();
+      log.info("uploadResult:{}", JSONUtil.toJsonStr(uploadResult));
+    } catch (Exception e) {
+      log.error("cos上传异常", e);
     }
+  }
 
     private ResponseEntity<String> postJson(String notifyHook, String paramsJson) {
         HttpHeaders headers = new HttpHeaders();

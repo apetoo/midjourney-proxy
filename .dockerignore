@@ -1,0 +1,9 @@
+
+### application config #
+config/application.yml
+
+.git
+.gitignore
+docker
+docs
+README.md
