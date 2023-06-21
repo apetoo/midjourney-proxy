@@ -7,6 +7,7 @@ import java.util.Set;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.json.JSONUtil;
 import com.github.novicezk.midjourney.Constants;
 import com.github.novicezk.midjourney.ProxyProperties;
 import com.github.novicezk.midjourney.ReturnCode;
@@ -35,11 +36,13 @@ import eu.maxschuster.dataurl.IDataUrlSerializer;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @Api(tags = "任务提交")
 @RestController
 @RequestMapping("/submit")
@@ -210,6 +213,7 @@ public class SubmitController {
     task.setRealNotifyHook(base.getRealNotifyHook());
 		String notifyHook = CharSequenceUtil.isBlank(base.getNotifyHook()) ? this.properties.getNotifyHook() : base.getNotifyHook();
 		task.setProperty(Constants.TASK_PROPERTY_NOTIFY_HOOK, notifyHook);
+    log.info("构建任务: {}", JSONUtil.toJsonStr(task));
 		return task;
 	}
 }
