@@ -1,16 +1,16 @@
 package com.github.novicezk.midjourney.support;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.github.novicezk.midjourney.enums.TaskAction;
 import com.github.novicezk.midjourney.enums.TaskStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-
-import java.io.Serial;
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
 
 @Data
 @ApiModel("任务")
@@ -46,6 +46,8 @@ public class Task implements Serializable {
 	private String progress;
 	@ApiModelProperty("失败原因")
 	private String failReason;
+  private String systemIp;
+  protected String realNotifyHook;
 
 	// 任务扩展属性，仅支持基本类型
 	private Map<String, Object> properties;
