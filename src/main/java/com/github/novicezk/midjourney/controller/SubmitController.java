@@ -206,6 +206,8 @@ public class SubmitController {
 		task.setId(IdUtil.getSnowflakeNextIdStr());
 		task.setSubmitTime(System.currentTimeMillis());
 		task.setState(base.getState());
+    task.setSystemIp(base.getSystemIp());
+    task.setRealNotifyHook(base.getRealNotifyHook());
 		String notifyHook = CharSequenceUtil.isBlank(base.getNotifyHook()) ? this.properties.getNotifyHook() : base.getNotifyHook();
 		task.setProperty(Constants.TASK_PROPERTY_NOTIFY_HOOK, notifyHook);
 		return task;
