@@ -1,11 +1,5 @@
 package com.github.novicezk.midjourney.service;
 
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.HashMap;
-import java.util.Map;
-
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
@@ -20,14 +14,16 @@ import com.qcloud.cos.transfer.TransferManager;
 import com.qcloud.cos.transfer.Upload;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -102,7 +98,7 @@ public class NotifyServiceImpl implements NotifyService {
 //            userMetadata.put("id", taskId);
 //            userMetadata.put("name", key);
       userMetadata.put("taskStatus", task.getStatus().name());
-      userMetadata.put("failReason", task.getFailReason());
+//      userMetadata.put("failReason", task.getFailReason());
       userMetadata.put("notifyHook", task.getPropertyGeneric(Constants.TASK_PROPERTY_NOTIFY_HOOK));
       userMetadata.put("relatedTaskId", task.getPropertyGeneric(Constants.TASK_PROPERTY_RELATED_TASK_ID));
       userMetadata.put("state", task.getState());
