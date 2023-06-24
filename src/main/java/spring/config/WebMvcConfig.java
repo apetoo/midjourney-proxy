@@ -3,6 +3,9 @@ package spring.config;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.github.novicezk.midjourney.ProxyProperties;
 import com.github.novicezk.midjourney.support.ApiAuthorizeInterceptor;
+import org.apache.catalina.connector.Connector;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
@@ -28,6 +31,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
 			registry.addInterceptor(this.apiAuthorizeInterceptor)
 					.addPathPatterns("/submit/**", "/task/**");
 		}
+	}
+
+	@Bean
+	public TomcatServletWebServerFactory webServerFactory() {
+		TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
+		factory.addConnectorCustomizers((Connector connector) -> {
+			connector.setProperty("relaxedPathChars", "\"<>[\\]^`{|}");
+			connector.setProperty("relaxedQueryChars", "\"<>[\\]^`{|}");
+		});
+		return factory;
 	}
 
 }
