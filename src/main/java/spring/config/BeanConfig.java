@@ -39,14 +39,14 @@ import java.util.concurrent.Executors;
 @Configuration
 public class BeanConfig {
 
-    @Bean
-    TranslateService translateService(ProxyProperties properties) {
-        return switch (properties.getTranslateWay()) {
-            case BAIDU -> new BaiduTranslateServiceImpl(properties.getBaiduTranslate());
-            case GPT -> new GPTTranslateServiceImpl(properties.getOpenai());
-            default -> prompt -> prompt;
-        };
-    }
+	@Bean
+	TranslateService translateService(ProxyProperties properties) {
+		return switch (properties.getTranslateWay()) {
+			case BAIDU -> new BaiduTranslateServiceImpl(properties.getBaiduTranslate());
+			case GPT -> new GPTTranslateServiceImpl(properties);
+			default -> prompt -> prompt;
+		};
+	}
 
     @Bean
     TaskStoreService taskStoreService(ProxyProperties proxyProperties, RedisConnectionFactory redisConnectionFactory) {
@@ -91,7 +91,11 @@ public class BeanConfig {
     }
 
 	@Bean
-	Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer() {
+	Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer(ProxyProperties properties) {
+		if (properties.isIncludeTaskExtended()) {
+			return builder -> {
+			};
+		}
 		return builder -> builder.mixIn(Task.class, TaskMixin.class);
 	}
 
