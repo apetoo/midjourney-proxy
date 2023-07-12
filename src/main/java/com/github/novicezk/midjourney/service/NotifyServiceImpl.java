@@ -6,7 +6,6 @@ import cn.hutool.core.exceptions.CheckedUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.novicezk.midjourney.Constants;
 import com.github.novicezk.midjourney.ProxyProperties;
@@ -58,12 +57,12 @@ public class NotifyServiceImpl implements NotifyService {
 		String taskId = task.getId();
 		TaskStatus taskStatus = task.getStatus();
 		Object taskLock = this.taskLocks.get(taskId, (CheckedUtil.Func0Rt<Object>) Object::new);
-		try {
-			String paramsStr = OBJECT_MAPPER.writeValueAsString(task);
+
 			this.executor.execute(() -> {
 				synchronized (taskLock) {
 					try {
 						updateCosTask(task);
+                        String paramsStr = OBJECT_MAPPER.writeValueAsString(task);
 						ResponseEntity<String> responseEntity = postJson(notifyHook, paramsStr);
 						if (responseEntity.getStatusCode() == HttpStatus.OK) {
 							log.debug("推送任务变更成功, 任务ID: {}, status: {}, notifyHook: {}", taskId, taskStatus, notifyHook);
@@ -75,9 +74,6 @@ public class NotifyServiceImpl implements NotifyService {
 					}
 				}
 			});
-		} catch (JsonProcessingException e) {
-			log.warn("推送任务变更失败, 任务ID: {}, notifyHook: {}, 描述: {}", taskId, notifyHook, e.getMessage());
-		}
 	}
 
   private ResponseEntity<String> postJson (String notifyHook, String paramsJson) {
