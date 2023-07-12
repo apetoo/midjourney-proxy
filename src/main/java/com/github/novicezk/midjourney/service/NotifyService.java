@@ -7,4 +7,5 @@ public interface NotifyService {
 
 	void notifyTaskChange(Task task);
 
+    void updateCosTask(Task task);
 }

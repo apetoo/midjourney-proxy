@@ -119,6 +119,7 @@ public class TaskQueueHelper {
 
 	public void changeStatusAndNotify(Task task, TaskStatus status) {
 		task.setStatus(status);
+		this.notifyService.updateCosTask(task);
 		this.taskStoreService.save(task);
 		this.notifyService.notifyTaskChange(task);
 	}

@@ -84,7 +84,8 @@ public class NotifyServiceImpl implements NotifyService {
   }
 
 
-    private void updateCosTask(Task task) {
+  @Override
+    public void updateCosTask(Task task) {
         String taskId = task.getId();
         URL url;
         URLConnection connection;
