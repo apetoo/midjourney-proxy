@@ -1,7 +1,7 @@
 FROM eclipse-temurin:17-jre
 
-ARG user=spring
-ARG group=spring
+ARG user=www
+ARG group=www
 
 ENV SPRING_HOME=/home/spring
 

@@ -10,7 +10,6 @@ import com.github.novicezk.midjourney.Constants;
 import com.github.novicezk.midjourney.ProxyProperties;
 import com.github.novicezk.midjourney.enums.TaskStatus;
 import com.github.novicezk.midjourney.support.Task;
-import com.qcloud.cos.transfer.TransferManager;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 import org.springframework.http.*;
@@ -18,8 +17,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.URL;
-import java.net.URLConnection;
 import java.time.Duration;
 
 @Slf4j
@@ -30,15 +27,13 @@ public class NotifyServiceImpl implements NotifyService {
 	private final TimedCache<String, Object> taskLocks = CacheUtil.newTimedCache(Duration.ofHours(1).toMillis());
 
 	private ProxyProperties properties;
-	private TransferManager transferManager;
 
-	public NotifyServiceImpl(ProxyProperties properties, TransferManager transferManager) {
+	public NotifyServiceImpl(ProxyProperties properties) {
 		this.executor = new ThreadPoolTaskExecutor();
 		this.executor.setCorePoolSize(properties.getNotifyPoolSize());
 		this.executor.setThreadNamePrefix("TaskNotify-");
 		this.executor.initialize();
 		this.properties = properties;
-		this.transferManager = transferManager;
 	}
 
 	@Override
