@@ -1,22 +1,12 @@
 package com.github.novicezk.midjourney.controller;
 
-import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.github.novicezk.midjourney.Constants;
 import com.github.novicezk.midjourney.ProxyProperties;
 import com.github.novicezk.midjourney.ReturnCode;
-import com.github.novicezk.midjourney.dto.BaseSubmitDTO;
-import com.github.novicezk.midjourney.dto.SubmitBlendDTO;
-import com.github.novicezk.midjourney.dto.SubmitChangeDTO;
-import com.github.novicezk.midjourney.dto.SubmitDescribeDTO;
-import com.github.novicezk.midjourney.dto.SubmitImagineDTO;
-import com.github.novicezk.midjourney.dto.SubmitSimpleChangeDTO;
+import com.github.novicezk.midjourney.dto.*;
 import com.github.novicezk.midjourney.enums.TaskAction;
 import com.github.novicezk.midjourney.enums.TaskStatus;
 import com.github.novicezk.midjourney.exception.BannedPromptException;
@@ -26,11 +16,7 @@ import com.github.novicezk.midjourney.service.TaskStoreService;
 import com.github.novicezk.midjourney.service.TranslateService;
 import com.github.novicezk.midjourney.support.Task;
 import com.github.novicezk.midjourney.support.TaskCondition;
-import com.github.novicezk.midjourney.util.BannedPromptUtils;
-import com.github.novicezk.midjourney.util.ConvertUtils;
-import com.github.novicezk.midjourney.util.MimeTypeUtils;
-import com.github.novicezk.midjourney.util.SnowFlake;
-import com.github.novicezk.midjourney.util.TaskChangeParams;
+import com.github.novicezk.midjourney.util.*;
 import eu.maxschuster.dataurl.DataUrl;
 import eu.maxschuster.dataurl.DataUrlSerializer;
 import eu.maxschuster.dataurl.IDataUrlSerializer;
