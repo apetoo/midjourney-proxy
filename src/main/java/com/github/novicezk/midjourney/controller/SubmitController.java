@@ -19,6 +19,7 @@ import com.github.novicezk.midjourney.dto.SubmitImagineDTO;
 import com.github.novicezk.midjourney.dto.SubmitSimpleChangeDTO;
 import com.github.novicezk.midjourney.enums.TaskAction;
 import com.github.novicezk.midjourney.enums.TaskStatus;
+import com.github.novicezk.midjourney.exception.BannedPromptException;
 import com.github.novicezk.midjourney.result.SubmitResultVO;
 import com.github.novicezk.midjourney.service.TaskService;
 import com.github.novicezk.midjourney.service.TaskStoreService;
@@ -28,6 +29,7 @@ import com.github.novicezk.midjourney.support.TaskCondition;
 import com.github.novicezk.midjourney.util.BannedPromptUtils;
 import com.github.novicezk.midjourney.util.ConvertUtils;
 import com.github.novicezk.midjourney.util.MimeTypeUtils;
+import com.github.novicezk.midjourney.util.SnowFlake;
 import com.github.novicezk.midjourney.util.TaskChangeParams;
 import eu.maxschuster.dataurl.DataUrl;
 import eu.maxschuster.dataurl.DataUrlSerializer;
@@ -40,6 +42,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Api(tags = "任务提交")
@@ -63,31 +71,26 @@ public class SubmitController {
 		Task task = newTask(imagineDTO);
 		task.setAction(TaskAction.IMAGINE);
 		task.setPrompt(prompt);
-		String promptEn;
-		int paramStart = prompt.indexOf(" --");
-		if (paramStart > 0) {
-			promptEn = this.translateService.translateToEnglish(prompt.substring(0, paramStart)).trim() + prompt.substring(paramStart);
-		} else {
-			promptEn = this.translateService.translateToEnglish(prompt).trim();
+		String promptEn = translatePrompt(prompt);
+		try {
+			BannedPromptUtils.checkBanned(promptEn);
+		} catch (BannedPromptException e) {
+			return SubmitResultVO.fail(ReturnCode.BANNED_PROMPT, "可能包含敏感词")
+					.setProperty("promptEn", promptEn).setProperty("bannedWord", e.getMessage());
 		}
-		if (CharSequenceUtil.isBlank(promptEn)) {
-			promptEn = prompt;
-		}
-		if (BannedPromptUtils.isBanned(promptEn)) {
-			return SubmitResultVO.fail(ReturnCode.BANNED_PROMPT, "可能包含敏感词");
-		}
-		DataUrl dataUrl = null;
+		List<String> base64Array = Optional.ofNullable(imagineDTO.getBase64Array()).orElse(new ArrayList<>());
 		if (CharSequenceUtil.isNotBlank(imagineDTO.getBase64())) {
-			IDataUrlSerializer serializer = new DataUrlSerializer();
-			try {
-				dataUrl = serializer.unserialize(imagineDTO.getBase64());
-			} catch (MalformedURLException e) {
-				return SubmitResultVO.fail(ReturnCode.VALIDATION_ERROR, "basisImageBase64格式错误");
-			}
+			base64Array.add(imagineDTO.getBase64());
+		}
+		List<DataUrl> dataUrls;
+		try {
+			dataUrls = ConvertUtils.convertBase64Array(base64Array);
+		} catch (MalformedURLException e) {
+			return SubmitResultVO.fail(ReturnCode.VALIDATION_ERROR, "base64格式错误");
 		}
 		task.setPromptEn(promptEn);
 		task.setDescription("/imagine " + prompt);
-		return this.taskService.submitImagine(task, dataUrl);
+		return this.taskService.submitImagine(task, dataUrls);
 	}
 
 	@ApiOperation(value = "绘图变化-simple")
@@ -121,12 +124,14 @@ public class SubmitController {
 		} else {
 			description += " " + changeDTO.getAction().name().charAt(0) + changeDTO.getIndex();
 		}
-		TaskCondition condition = new TaskCondition().setDescription(description);
-		Task existTask = this.taskStoreService.findOne(condition);
-		if (existTask != null) {
-			return SubmitResultVO.of(ReturnCode.EXISTED, "任务已存在", existTask.getId())
-					.setProperty("status", existTask.getStatus())
-					.setProperty("imageUrl", existTask.getImageUrl());
+		if (TaskAction.UPSCALE.equals(changeDTO.getAction())) {
+			TaskCondition condition = new TaskCondition().setDescription(description);
+			Task existTask = this.taskStoreService.findOne(condition);
+			if (existTask != null) {
+				return SubmitResultVO.of(ReturnCode.EXISTED, "任务已存在", existTask.getId())
+						.setProperty("status", existTask.getStatus())
+						.setProperty("imageUrl", existTask.getImageUrl());
+			}
 		}
 		Task targetTask = this.taskStoreService.get(changeDTO.getTaskId());
 		if (targetTask == null) {
@@ -135,7 +140,7 @@ public class SubmitController {
 		if (!TaskStatus.SUCCESS.equals(targetTask.getStatus())) {
 			return SubmitResultVO.fail(ReturnCode.VALIDATION_ERROR, "关联任务状态错误");
 		}
-		if (!Set.of(TaskAction.IMAGINE, TaskAction.VARIATION, TaskAction.BLEND).contains(targetTask.getAction())) {
+		if (!Set.of(TaskAction.IMAGINE, TaskAction.VARIATION, TaskAction.REROLL, TaskAction.BLEND).contains(targetTask.getAction())) {
 			return SubmitResultVO.fail(ReturnCode.VALIDATION_ERROR, "关联任务不允许执行变化");
 		}
 		Task task = newTask(changeDTO);
@@ -143,6 +148,7 @@ public class SubmitController {
 		task.setPrompt(targetTask.getPrompt());
 		task.setPromptEn(targetTask.getPromptEn());
 		task.setProperty(Constants.TASK_PROPERTY_FINAL_PROMPT, targetTask.getProperty(Constants.TASK_PROPERTY_FINAL_PROMPT));
+		task.setProperty(Constants.TASK_PROPERTY_PROGRESS_MESSAGE_ID, targetTask.getProperty(Constants.TASK_PROPERTY_MESSAGE_ID));
 		task.setDescription(description);
 		int messageFlags = targetTask.getPropertyGeneric(Constants.TASK_PROPERTY_FLAGS);
 		String messageId = targetTask.getPropertyGeneric(Constants.TASK_PROPERTY_MESSAGE_ID);
@@ -152,7 +158,7 @@ public class SubmitController {
 		} else if (TaskAction.VARIATION.equals(changeDTO.getAction())) {
 			return this.taskService.submitVariation(task, messageId, messageHash, changeDTO.getIndex(), messageFlags);
 		} else {
-			return SubmitResultVO.fail(ReturnCode.VALIDATION_ERROR, "不支持的操作: " + changeDTO.getAction());
+			return this.taskService.submitReroll(task, messageId, messageHash, messageFlags);
 		}
 	}
 
@@ -204,14 +210,29 @@ public class SubmitController {
 
 	private Task newTask(BaseSubmitDTO base) {
 		Task task = new Task();
-		task.setId(IdUtil.getSnowflakeNextIdStr());
+		task.setId(System.currentTimeMillis() + "" + RandomUtil.randomNumbers(3));
 		task.setSubmitTime(System.currentTimeMillis());
 		task.setState(base.getState());
     task.setSystemIp(base.getSystemIp());
     task.setRealNotifyHook(base.getRealNotifyHook());
 		String notifyHook = CharSequenceUtil.isBlank(base.getNotifyHook()) ? this.properties.getNotifyHook() : base.getNotifyHook();
 		task.setProperty(Constants.TASK_PROPERTY_NOTIFY_HOOK, notifyHook);
+		task.setProperty(Constants.TASK_PROPERTY_NONCE, SnowFlake.INSTANCE.nextId());
     log.info("构建任务: {}", JSONUtil.toJsonStr(task));
 		return task;
+	}
+
+	private String translatePrompt(String prompt) {
+		String promptEn;
+		int paramStart = prompt.indexOf(" --");
+		if (paramStart > 0) {
+			promptEn = this.translateService.translateToEnglish(prompt.substring(0, paramStart)).trim() + prompt.substring(paramStart);
+		} else {
+			promptEn = this.translateService.translateToEnglish(prompt).trim();
+		}
+		if (CharSequenceUtil.isBlank(promptEn)) {
+			promptEn = prompt;
+		}
+		return promptEn;
 	}
 }
