@@ -1,6 +1,15 @@
 package com.github.novicezk.midjourney.loadbalancer;
 
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+
 import com.github.novicezk.midjourney.Constants;
 import com.github.novicezk.midjourney.ReturnCode;
 import com.github.novicezk.midjourney.domain.DiscordAccount;
@@ -19,15 +28,6 @@ import eu.maxschuster.dataurl.DataUrl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.client.RestTemplate;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 
 @Slf4j
 public class DiscordInstanceImpl implements DiscordInstance {
@@ -159,6 +159,7 @@ public class DiscordInstanceImpl implements DiscordInstance {
 	}
 
 	private void saveAndNotify(Task task) {
+    this.notifyService.updateCosTask(task);
 		this.taskStoreService.save(task);
 		this.notifyService.notifyTaskChange(task);
 	}
